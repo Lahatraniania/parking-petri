@@ -25,8 +25,8 @@ export class PetriNet {
         // Intervalles de vérification
         this.checkInterval = null;
         this.dureeMax = {
-            civil: 8 * 60 * 60 * 1000,
-            vip: 10 * 60 * 60 * 1000
+            civil: 4 * 60 * 60 * 1000,
+            vip: 5 * 60 * 60 * 1000
         };
     }
 
