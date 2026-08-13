@@ -5,7 +5,9 @@ export class PetriNet {
             vipLibre: vipTotal,
             civilOccupe: 0,
             vipOccupe: 0,
-            fileAttente: []
+            // Deux files d'attente séparées
+            fileAttenteCivil: [],
+            fileAttenteVip: []
         };
         this.civilTotal = civilTotal;
         this.vipTotal = vipTotal;
@@ -13,22 +15,35 @@ export class PetriNet {
 
         // Suivi des véhicules stationnés
         this.vehicules = {
-            civil: [], // [{id, placeId, heureEntree, dureeMax}]
+            civil: [],
             vip: []
         };
         this.vehicleCounter = 0;
+        this.reservationCounterCivil = 0;
+        this.reservationCounterVip = 0;
 
         // Intervalles de vérification
         this.checkInterval = null;
         this.dureeMax = {
-            civil: 8 * 60 * 60 * 1000, // 8 heures en millisecondes
-            vip: 10 * 60 * 60 * 1000   // 10 heures en millisecondes
+            civil: 8 * 60 * 60 * 1000,
+            vip: 10 * 60 * 60 * 1000
         };
     }
 
-    // Transition T1: Entrée civil
+    // Vérifier si la file d'attente Civil est vide
+    isFileAttenteCivilVide() {
+        return this.places.fileAttenteCivil.length === 0;
+    }
+
+    // Vérifier si la file d'attente VIP est vide
+    isFileAttenteVipVide() {
+        return this.places.fileAttenteVip.length === 0;
+    }
+
+    // Transition T1: Entrée civil - NE DEPEND QUE DE LA FILE CIVIL
     entrerCivil() {
-        if (this.places.civilLibre > 0) {
+        // Une voiture civile ne peut entrer que si la file d'attente CIVIL est vide
+        if (this.places.civilLibre > 0 && this.isFileAttenteCivilVide()) {
             this.places.civilLibre--;
             this.places.civilOccupe++;
 
@@ -44,15 +59,21 @@ export class PetriNet {
             this.ajouterHistorique('Entrée civil', `Place ${placeId + 1}`);
             return true;
         } else {
-            this.places.fileAttente.push({ type: 'civil', timestamp: Date.now() });
-            this.ajouterHistorique('Entrée civil', 'file d\'attente');
+            // Ajouter à la file d'attente CIVIL
+            this.places.fileAttenteCivil.push({
+                type: 'civil',
+                timestamp: Date.now(),
+                reservation: ++this.reservationCounterCivil
+            });
+            this.ajouterHistorique('Entrée civil', `file CIVIL #${this.reservationCounterCivil}`);
             return false;
         }
     }
 
-    // Transition T2: Entrée VIP
+    // Transition T2: Entrée VIP - NE DEPEND QUE DE LA FILE VIP
     entrerVip() {
-        if (this.places.vipLibre > 0) {
+        // Une voiture VIP ne peut entrer que si la file d'attente VIP est vide
+        if (this.places.vipLibre > 0 && this.isFileAttenteVipVide()) {
             this.places.vipLibre--;
             this.places.vipOccupe++;
 
@@ -68,8 +89,13 @@ export class PetriNet {
             this.ajouterHistorique('Entrée VIP', `Place ${placeId + 1}`);
             return true;
         } else {
-            this.places.fileAttente.push({ type: 'vip', timestamp: Date.now() });
-            this.ajouterHistorique('Entrée VIP', 'file d\'attente');
+            // Ajouter à la file d'attente VIP
+            this.places.fileAttenteVip.push({
+                type: 'vip',
+                timestamp: Date.now(),
+                reservation: ++this.reservationCounterVip
+            });
+            this.ajouterHistorique('Entrée VIP', `file VIP #${this.reservationCounterVip}`);
             return false;
         }
     }
@@ -94,18 +120,22 @@ export class PetriNet {
         return -1;
     }
 
-    // Transition T3: Sortie civil - PEUT SORTIR DE N'IMPORTE QUELLE PLACE
+    // Transition T3: Sortie civil
     sortirCivil(placeId = null) {
         if (this.places.civilOccupe > 0) {
             let index = -1;
 
-            // Si placeId spécifié, sortir de cette place spécifique
             if (placeId !== null) {
                 index = this.vehicules.civil.findIndex(v => v.placeId === placeId);
             } else {
-                // Sinon, sortir le premier véhicule trouvé
                 if (this.vehicules.civil.length === 0) return false;
-                index = 0; // Prendre le premier (n'importe lequel)
+                let plusAncien = 0;
+                for (let i = 1; i < this.vehicules.civil.length; i++) {
+                    if (this.vehicules.civil[i].heureEntree < this.vehicules.civil[plusAncien].heureEntree) {
+                        plusAncien = i;
+                    }
+                }
+                index = plusAncien;
             }
 
             if (index !== -1) {
@@ -122,7 +152,8 @@ export class PetriNet {
                     `Place ${vehicule.placeId + 1} - ${dureeHeures}h`
                 );
 
-                this.verifierFileAttente();
+                // Vérifier uniquement la file CIVIL
+                this.verifierFileAttenteCivil();
                 return true;
             }
         }
@@ -130,7 +161,7 @@ export class PetriNet {
         return false;
     }
 
-    // Transition T4: Sortie VIP - PEUT SORTIR DE N'IMPORTE QUELLE PLACE
+    // Transition T4: Sortie VIP
     sortirVip(placeId = null) {
         if (this.places.vipOccupe > 0) {
             let index = -1;
@@ -139,7 +170,13 @@ export class PetriNet {
                 index = this.vehicules.vip.findIndex(v => v.placeId === placeId);
             } else {
                 if (this.vehicules.vip.length === 0) return false;
-                index = 0; // Prendre le premier (n'importe lequel)
+                let plusAncien = 0;
+                for (let i = 1; i < this.vehicules.vip.length; i++) {
+                    if (this.vehicules.vip[i].heureEntree < this.vehicules.vip[plusAncien].heureEntree) {
+                        plusAncien = i;
+                    }
+                }
+                index = plusAncien;
             }
 
             if (index !== -1) {
@@ -156,7 +193,8 @@ export class PetriNet {
                     `Place ${vehicule.placeId + 1} - ${dureeHeures}h`
                 );
 
-                this.verifierFileAttente();
+                // Vérifier uniquement la file VIP
+                this.verifierFileAttenteVip();
                 return true;
             }
         }
@@ -169,7 +207,6 @@ export class PetriNet {
         const maintenant = Date.now();
         let depassements = [];
 
-        // Vérifier les civils
         for (let i = this.vehicules.civil.length - 1; i >= 0; i--) {
             const v = this.vehicules.civil[i];
             const duree = maintenant - v.heureEntree;
@@ -183,7 +220,6 @@ export class PetriNet {
             }
         }
 
-        // Vérifier les VIP
         for (let i = this.vehicules.vip.length - 1; i >= 0; i--) {
             const v = this.vehicules.vip[i];
             const duree = maintenant - v.heureEntree;
@@ -209,7 +245,7 @@ export class PetriNet {
                 this.places.civilOccupe--;
                 this.places.civilLibre++;
                 this.ajouterHistorique('⚠️ Sortie forcée', `Civil place ${placeId + 1} - dépassement`);
-                this.verifierFileAttente();
+                this.verifierFileAttenteCivil();
                 return true;
             }
         } else {
@@ -219,20 +255,21 @@ export class PetriNet {
                 this.places.vipOccupe--;
                 this.places.vipLibre++;
                 this.ajouterHistorique('⚠️ Sortie forcée', `VIP place ${placeId + 1} - dépassement`);
-                this.verifierFileAttente();
+                this.verifierFileAttenteVip();
                 return true;
             }
         }
         return false;
     }
 
-    // Vérifier la file d'attente
-    verifierFileAttente() {
-        if (this.places.fileAttente.length === 0) return;
+    // Vérifier la file d'attente CIVIL uniquement
+    verifierFileAttenteCivil() {
+        if (this.places.fileAttenteCivil.length === 0) return;
 
-        const file = this.places.fileAttente[0];
+        const file = this.places.fileAttenteCivil[0];
+
         if (file.type === 'civil' && this.places.civilLibre > 0) {
-            this.places.fileAttente.shift();
+            this.places.fileAttenteCivil.shift();
             this.places.civilLibre--;
             this.places.civilOccupe++;
 
@@ -243,13 +280,24 @@ export class PetriNet {
                 heureEntree: Date.now(),
                 dureeMax: this.dureeMax.civil,
                 type: 'civil',
-                fromQueue: true
+                fromQueue: true,
+                reservation: file.reservation
             });
 
-            this.ajouterHistorique('File → Place', `Civil place ${placeId + 1}`);
-            this.verifierFileAttente();
-        } else if (file.type === 'vip' && this.places.vipLibre > 0) {
-            this.places.fileAttente.shift();
+            this.ajouterHistorique('File CIVIL → Place', `Civil #${file.reservation} place ${placeId + 1}`);
+            // Continuer à vérifier la file CIVIL
+            this.verifierFileAttenteCivil();
+        }
+    }
+
+    // Vérifier la file d'attente VIP uniquement
+    verifierFileAttenteVip() {
+        if (this.places.fileAttenteVip.length === 0) return;
+
+        const file = this.places.fileAttenteVip[0];
+
+        if (file.type === 'vip' && this.places.vipLibre > 0) {
+            this.places.fileAttenteVip.shift();
             this.places.vipLibre--;
             this.places.vipOccupe++;
 
@@ -260,11 +308,12 @@ export class PetriNet {
                 heureEntree: Date.now(),
                 dureeMax: this.dureeMax.vip,
                 type: 'vip',
-                fromQueue: true
+                fromQueue: true,
+                reservation: file.reservation
             });
 
-            this.ajouterHistorique('File → Place', `VIP place ${placeId + 1}`);
-            this.verifierFileAttente();
+            this.ajouterHistorique('File VIP → Place', `VIP #${file.reservation} place ${placeId + 1}`);
+            this.verifierFileAttenteVip();
         }
     }
 
@@ -348,12 +397,20 @@ export class PetriNet {
             }))
         };
 
+        // Fusionner les deux files d'attente pour l'affichage
+        const fileAttente = [
+            ...this.places.fileAttenteCivil.map(item => ({ ...item, file: 'civil' })),
+            ...this.places.fileAttenteVip.map(item => ({ ...item, file: 'vip' }))
+        ];
+
         return {
             civilLibre: this.places.civilLibre,
             vipLibre: this.places.vipLibre,
             civilOccupe: this.places.civilOccupe,
             vipOccupe: this.places.vipOccupe,
-            fileAttente: this.places.fileAttente,
+            fileAttente: fileAttente,
+            fileAttenteCivil: this.places.fileAttenteCivil,
+            fileAttenteVip: this.places.fileAttenteVip,
             civilTotal: this.civilTotal,
             vipTotal: this.vipTotal,
             totalPlaces: this.civilTotal + this.vipTotal,

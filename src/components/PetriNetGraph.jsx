@@ -29,27 +29,37 @@ function PetriNetGraph({ state }) {
         },
         P5: {
             label: 'P5',
-            desc: "File d'attente",
-            value: state.fileAttente?.length || 0,
+            desc: "File d'attente CIVIL",
+            value: state.fileAttenteCivil?.length || 0,
+            total: 0
+        },
+        P6: {
+            label: 'P6',
+            desc: "File d'attente VIP",
+            value: state.fileAttenteVip?.length || 0,
             total: 0
         },
     };
 
-    // Positions des éléments
+    // Positions des éléments - Séparés correctement
     const nodes = {
-        P1: { x: 120, y: 80 },
-        P2: { x: 120, y: 200 },
-        P3: { x: 380, y: 80 },
-        P4: { x: 380, y: 200 },
-        P5: { x: 250, y: 310 },
-        T1: { x: 250, y: 80 },
-        T2: { x: 250, y: 200 },
-        T3: { x: 500, y: 80 },
-        T4: { x: 500, y: 200 },
-        T5: { x: 250, y: 400 },
+        // Places
+        P1: { x: 100, y: 70 },
+        P2: { x: 100, y: 180 },
+        P3: { x: 340, y: 70 },
+        P4: { x: 340, y: 180 },
+        P5: { x: 170, y: 290 },    // P5 décalé à gauche
+        P6: { x: 290, y: 290 },    // P6 décalé à droite
+        // Transitions
+        T1: { x: 220, y: 70 },
+        T2: { x: 220, y: 180 },
+        T3: { x: 440, y: 70 },
+        T4: { x: 440, y: 180 },
+        T5: { x: 220, y: 290 },    // T5 entre P5 et T6 (en dessous)
+        T6: { x: 360, y: 290 },    // T6 à droite de T5
     };
 
-    // Arcs du réseau
+    // Arcs du réseau - Mise à jour des connexions
     const arcs = [
         { from: 'P1', to: 'T1' },
         { from: 'P2', to: 'T2' },
@@ -59,9 +69,14 @@ function PetriNetGraph({ state }) {
         { from: 'P4', to: 'T4' },
         { from: 'T3', to: 'P1' },
         { from: 'T4', to: 'P2' },
+        // P5 -> T5 (P5 à gauche de T5)
         { from: 'P5', to: 'T5' },
+        // T5 -> P1
         { from: 'T5', to: 'P1' },
-        { from: 'T5', to: 'P2' },
+        // P6 -> T6 (P6 à droite de T6)
+        { from: 'P6', to: 'T6' },
+        // T6 -> P2
+        { from: 'T6', to: 'P2' },
     ];
 
     const getNode = (id) => nodes[id];
@@ -72,7 +87,7 @@ function PetriNetGraph({ state }) {
         const total = Math.min(count, 6);
         if (total === 0) return positions;
 
-        const radius = 28;
+        const radius = 26;
         if (total === 1) {
             positions.push({ x: cx + radius * 0.8, y: cy - radius * 0.6 });
         } else if (total === 2) {
@@ -92,11 +107,12 @@ function PetriNetGraph({ state }) {
 
     // Vérifier si une transition est franchissable
     const isTransitionFirable = (id) => {
-        if (id === 'T1') return placesData.P1.value > 0;
-        if (id === 'T2') return placesData.P2.value > 0;
+        if (id === 'T1') return placesData.P1.value > 0 && placesData.P5.value === 0;
+        if (id === 'T2') return placesData.P2.value > 0 && placesData.P6.value === 0;
         if (id === 'T3') return placesData.P3.value > 0;
         if (id === 'T4') return placesData.P4.value > 0;
         if (id === 'T5') return placesData.P5.value > 0;
+        if (id === 'T6') return placesData.P6.value > 0;
         return false;
     };
 
@@ -106,7 +122,8 @@ function PetriNetGraph({ state }) {
         T2: 'Entrée VIP',
         T3: 'Sortie Civil',
         T4: 'Sortie VIP',
-        T5: 'Sortie forcée'
+        T5: 'Sortie file CIVIL',
+        T6: 'Sortie file VIP'
     };
 
     return (
@@ -123,14 +140,14 @@ function PetriNetGraph({ state }) {
             <div className="overflow-auto">
                 <svg
                     width="100%"
-                    height="420"
-                    viewBox="0 0 620 450"
+                    height="400"
+                    viewBox="0 0 580 380"
                     className="border border-gray-200 rounded-lg bg-white"
                 >
                     {/* Définition des flèches */}
                     <defs>
-                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+                        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#333" />
                         </marker>
                     </defs>
 
@@ -143,7 +160,7 @@ function PetriNetGraph({ state }) {
                         const dx = to.x - from.x;
                         const dy = to.y - from.y;
                         const dist = Math.sqrt(dx * dx + dy * dy);
-                        const offset = 32;
+                        const offset = 28;
                         const startX = from.x + (dx / dist) * offset;
                         const startY = from.y + (dy / dist) * offset;
                         const endX = to.x - (dx / dist) * offset;
@@ -157,37 +174,42 @@ function PetriNetGraph({ state }) {
                                 x2={endX}
                                 y2={endY}
                                 stroke="#333"
-                                strokeWidth="1.5"
+                                strokeWidth="1.2"
                                 markerEnd="url(#arrowhead)"
                             />
                         );
                     })}
 
                     {/* Places (cercles) */}
-                    {['P1', 'P2', 'P3', 'P4', 'P5'].map((id) => {
+                    {['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].map((id) => {
                         const p = nodes[id];
                         const data = placesData[id];
                         const hasTokens = data.value > 0;
                         const isP5 = id === 'P5';
+                        const isP6 = id === 'P6';
                         const tokenPositions = getTokenPositions(p.x, p.y, data.value);
+
+                        let fillColor = 'white';
+                        if (isP5) fillColor = '#E3F2FD';   // Bleu clair pour P5
+                        if (isP6) fillColor = '#FFF3E0';   // Orange clair pour P6
 
                         return (
                             <g key={id}>
                                 <circle
                                     cx={p.x}
                                     cy={p.y}
-                                    r="32"
-                                    fill={isP5 ? '#FFF9C4' : 'white'}
+                                    r="28"
+                                    fill={fillColor}
                                     stroke={hasTokens ? 'black' : '#999'}
-                                    strokeWidth={hasTokens ? "3" : "1.5"}
+                                    strokeWidth={hasTokens ? "2.5" : "1.5"}
                                     className="transition-all duration-300"
                                 />
 
                                 <text
                                     x={p.x}
-                                    y={p.y - 4}
+                                    y={p.y - 3}
                                     fill="black"
-                                    fontSize="14"
+                                    fontSize="12"
                                     fontWeight="bold"
                                     textAnchor="middle"
                                 >
@@ -196,9 +218,9 @@ function PetriNetGraph({ state }) {
 
                                 <text
                                     x={p.x}
-                                    y={p.y + 18}
+                                    y={p.y + 16}
                                     fill="#666"
-                                    fontSize="8"
+                                    fontSize="6.5"
                                     textAnchor="middle"
                                 >
                                     {data.desc}
@@ -210,7 +232,7 @@ function PetriNetGraph({ state }) {
                                         key={i}
                                         cx={pos.x}
                                         cy={pos.y}
-                                        r="5.5"
+                                        r="4.5"
                                         fill="black"
                                         stroke="black"
                                         strokeWidth="0.5"
@@ -220,9 +242,9 @@ function PetriNetGraph({ state }) {
 
                                 <text
                                     x={p.x}
-                                    y={p.y + 46}
+                                    y={p.y + 42}
                                     fill="black"
-                                    fontSize="15"
+                                    fontSize="13"
                                     fontWeight="bold"
                                     textAnchor="middle"
                                 >
@@ -231,10 +253,10 @@ function PetriNetGraph({ state }) {
 
                                 {(id === 'P1' || id === 'P2') && (
                                     <text
-                                        x={p.x + 32}
-                                        y={p.y + 46}
+                                        x={p.x + 28}
+                                        y={p.y + 42}
                                         fill="#999"
-                                        fontSize="9"
+                                        fontSize="7"
                                         textAnchor="middle"
                                     >
                                         /{data.total}
@@ -244,28 +266,28 @@ function PetriNetGraph({ state }) {
                         );
                     })}
 
-                    {/* Transitions (rectangles) */}
-                    {['T1', 'T2', 'T3', 'T4', 'T5'].map((id) => {
+                    {/* Transitions (petits rectangles) */}
+                    {['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map((id) => {
                         const t = nodes[id];
                         const firable = isTransitionFirable(id);
 
                         return (
                             <g key={id}>
                                 <rect
-                                    x={t.x - 22}
-                                    y={t.y - 14}
-                                    width="44"
-                                    height="28"
+                                    x={t.x - 16}
+                                    y={t.y - 10}
+                                    width="32"
+                                    height="20"
                                     fill={firable ? '#E8F5E9' : 'white'}
                                     stroke="black"
-                                    strokeWidth="2"
+                                    strokeWidth="1.8"
                                     className="transition-all duration-300"
                                 />
                                 <text
                                     x={t.x}
-                                    y={t.y + 4}
+                                    y={t.y + 3}
                                     fill="black"
-                                    fontSize="11"
+                                    fontSize="9"
                                     fontWeight="bold"
                                     textAnchor="middle"
                                 >
@@ -273,9 +295,9 @@ function PetriNetGraph({ state }) {
                                 </text>
                                 <text
                                     x={t.x}
-                                    y={t.y + 24}
+                                    y={t.y + 20}
                                     fill="#666"
-                                    fontSize="7"
+                                    fontSize="6"
                                     textAnchor="middle"
                                 >
                                     {transitionNames[id]}
@@ -285,19 +307,25 @@ function PetriNetGraph({ state }) {
                     })}
 
                     {/* Légende */}
-                    <g transform="translate(10, 430)">
+                    <g transform="translate(10, 360)">
                         <circle cx="6" cy="6" r="5" fill="white" stroke="black" strokeWidth="1.5" />
-                        <text x="16" y="9" fill="black" fontSize="8">Place</text>
+                        <text x="16" y="9" fill="black" fontSize="7">Place</text>
 
-                        <rect x="70" y="1" width="12" height="8" fill="white" stroke="black" strokeWidth="1.5" />
-                        <text x="87" y="9" fill="black" fontSize="8">Transition</text>
+                        <rect x="65" y="1" width="10" height="6" fill="white" stroke="black" strokeWidth="1.5" />
+                        <text x="80" y="9" fill="black" fontSize="7">Transition</text>
 
-                        <circle cx="140" cy="6" r="3.5" fill="black" />
-                        <text x="148" y="9" fill="black" fontSize="8">Jeton</text>
+                        <circle cx="130" cy="6" r="3" fill="black" />
+                        <text x="138" y="9" fill="black" fontSize="7">Jeton</text>
 
-                        <text x="210" y="9" fill="#666" fontSize="8">
+                        <text x="195" y="9" fill="#666" fontSize="7">
                             ● {state.totalOccupe || 0} voitures
                         </text>
+
+                        <rect x="270" y="1" width="10" height="6" fill="#E3F2FD" stroke="black" strokeWidth="0.5" />
+                        <text x="285" y="9" fill="#666" fontSize="7">P5 Civil</text>
+
+                        <rect x="340" y="1" width="10" height="6" fill="#FFF3E0" stroke="black" strokeWidth="0.5" />
+                        <text x="355" y="9" fill="#666" fontSize="7">P6 VIP</text>
                     </g>
                 </svg>
             </div>
@@ -313,7 +341,8 @@ function PetriNetGraph({ state }) {
                             <div><span className="font-bold">P2</span> - Places VIP Libres</div>
                             <div><span className="font-bold">P3</span> - Places Civiles Occupées</div>
                             <div><span className="font-bold">P4</span> - Places VIP Occupées</div>
-                            <div><span className="font-bold">P5</span> - File d'attente</div>
+                            <div><span className="font-bold">P5</span> - File d'attente CIVIL</div>
+                            <div><span className="font-bold">P6</span> - File d'attente VIP</div>
                         </div>
                     </div>
 
@@ -325,7 +354,8 @@ function PetriNetGraph({ state }) {
                             <div><span className="font-bold">T2</span> - Entrée VIP</div>
                             <div><span className="font-bold">T3</span> - Sortie Civil</div>
                             <div><span className="font-bold">T4</span> - Sortie VIP</div>
-                            <div><span className="font-bold">T5</span> - Sortie forcée (dépassement)</div>
+                            <div><span className="font-bold">T5</span> - Sortie file CIVIL</div>
+                            <div><span className="font-bold">T6</span> - Sortie file VIP</div>
                         </div>
                     </div>
                 </div>
