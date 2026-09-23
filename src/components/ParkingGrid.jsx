@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import PlaceCell from './PlaceCell';
 import { STATUS } from '../utils/constants';
-import { PencilSquareIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 function ParkingGrid({ state, onModifierPlaces, onSortie }) {
     const [civilInput, setCivilInput] = useState(state.civilTotal);
@@ -48,80 +47,76 @@ function ParkingGrid({ state, onModifierPlaces, onSortie }) {
     return (
         <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-200">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-black"> Places de Parking</h2>
+                <h2 className="text-xl font-bold text-black">Places de Parking</h2>
                 <button
                     onClick={() => setShowControls(!showControls)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                 >
-                    <PencilSquareIcon className="w-4 h-4" />
                     {showControls ? 'Masquer' : 'Modifier'}
                 </button>
             </div>
 
-            {/* Contrôles de modification - avec boutons OK visibles */}
+            {/* Contrôles de modification - labels empilés pour OK visible */}
             {showControls && (
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <h3 className="font-semibold mb-3 text-black">Modifier le nombre de places</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Places Civils (actuel: {state.civilTotal})
-                            </label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    min={state.civilOccupe}
-                                    value={civilInput}
-                                    onChange={(e) => setCivilInput(Number(e.target.value))}
-                                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                <button
-                                    onClick={handleModifierCivil}
-                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium whitespace-nowrap"
-                                >
-                                    <CheckIcon className="w-4 h-4" />
-                                    OK
-                                </button>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">Minimum: {state.civilOccupe} (places occupées)</p>
+
+                    {/* Civil - empilé verticalement */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Places Civils (actuel: {state.civilTotal})
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min={state.civilOccupe}
+                                value={civilInput}
+                                onChange={(e) => setCivilInput(Number(e.target.value))}
+                                className="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button
+                                onClick={handleModifierCivil}
+                                className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap"
+                            >
+                                OK
+                            </button>
+                            <span className="text-xs text-gray-500">
+                                min: {state.civilOccupe}
+                            </span>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Places VIP (actuel: {state.vipTotal})
-                            </label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    min={state.vipOccupe}
-                                    value={vipInput}
-                                    onChange={(e) => setVipInput(Number(e.target.value))}
-                                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                <button
-                                    onClick={handleModifierVip}
-                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium whitespace-nowrap"
-                                >
-                                    <CheckIcon className="w-4 h-4" />
-                                    OK
-                                </button>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">Minimum: {state.vipOccupe} (places occupées)</p>
+                    </div>
+
+                    {/* VIP - empilé verticalement */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Places VIP (actuel: {state.vipTotal})
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min={state.vipOccupe}
+                                value={vipInput}
+                                onChange={(e) => setVipInput(Number(e.target.value))}
+                                className="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button
+                                onClick={handleModifierVip}
+                                className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap"
+                            >
+                                OK
+                            </button>
+                            <span className="text-xs text-gray-500">
+                                min: {state.vipOccupe}
+                            </span>
                         </div>
                     </div>
                 </div>
             )}
 
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center">
-                <div className="text-sm text-gray-700 flex items-center gap-4">
-                    <span className="font-medium">⏱️ Durée max:</span>
-                    <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-gray-600 rounded-full"></span>
-                        Civil 8h
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-black rounded-full"></span>
-                        VIP 10h
-                    </span>
+            {/* Info durée */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center gap-2">
+                <div className="text-sm text-gray-700 font-medium">
+                    Durée max : Civil 8h | VIP 10h
                 </div>
                 <div className="text-sm flex items-center gap-4">
                     <span className="flex items-center gap-1">
@@ -138,8 +133,8 @@ function ParkingGrid({ state, onModifierPlaces, onSortie }) {
             {/* Places Civils */}
             <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-base font-semibold text-black flex items-center gap-2">
-                        <span className="text-lg">🚘</span> Places Civils
+                    <h3 className="text-base font-semibold text-black">
+                        Places Civils
                         <span className="ml-2 text-sm font-normal text-gray-500">
                             ({state.civilOccupe}/{state.civilTotal})
                         </span>
@@ -165,8 +160,8 @@ function ParkingGrid({ state, onModifierPlaces, onSortie }) {
             {/* Places VIP */}
             <div>
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-base font-semibold text-black flex items-center gap-2">
-                        <span className="text-lg">🏎️</span> Places VIP
+                    <h3 className="text-base font-semibold text-black">
+                        Places VIP
                         <span className="ml-2 text-sm font-normal text-gray-500">
                             ({state.vipOccupe}/{state.vipTotal})
                         </span>
@@ -189,6 +184,7 @@ function ParkingGrid({ state, onModifierPlaces, onSortie }) {
                 </div>
             </div>
 
+            {/* Légende */}
             <div className="mt-4 pt-3 border-t border-gray-200">
                 <div className="flex flex-wrap gap-4 text-xs text-gray-600">
                     <div className="flex items-center gap-1.5">
@@ -200,7 +196,6 @@ function ParkingGrid({ state, onModifierPlaces, onSortie }) {
                         <span>Occupé</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-400">
-                        <XMarkIcon className="w-3 h-3" />
                         <span>Cliquer sur ✕ pour sortir</span>
                     </div>
                 </div>

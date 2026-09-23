@@ -10,7 +10,7 @@ function PlaceCell({ id, type, status, vehicule = null, onSortie }) {
         return 'bg-white border-2 border-gray-300 hover:border-gray-500';
     };
 
-    // Style pour l'image de fond de la voiture
+    // Image de fond de la voiture (SVG)
     const getBackgroundStyle = () => {
         if (isOccupied) {
             const isCivil = type === 'civil';
@@ -32,9 +32,15 @@ function PlaceCell({ id, type, status, vehicule = null, onSortie }) {
         };
     };
 
-    // Couleur du texte : Noir tirant sur le gris
+    // Couleur du texte : Civil = blanc, VIP = noir
     const getTextColor = () => {
-        return 'text-gray-700'; // Noir tirant sur le gris
+        if (isOccupied) {
+            if (type === 'civil') {
+                return 'text-white';
+            }
+            return 'text-black';
+        }
+        return 'text-black';
     };
 
     const getStatusText = () => {
@@ -42,7 +48,7 @@ function PlaceCell({ id, type, status, vehicule = null, onSortie }) {
         return 'Libre';
     };
 
-    // Point
+    // Point de statut (pas d'icône)
     const getStatusIcon = () => {
         if (isOccupied) {
             return <span className="text-red-500 text-2xl font-bold">●</span>;
@@ -61,37 +67,32 @@ function PlaceCell({ id, type, status, vehicule = null, onSortie }) {
       `}
             style={getBackgroundStyle()}
         >
-            {/* Contenu */}
             <div className="relative z-10 w-full h-full flex flex-col items-center justify-between">
-                {/* Nom de la place - EN HAUT, petit et gras */}
+                {/* Nom de la place en haut */}
                 <div className={`text-sm font-extrabold ${getTextColor()} self-start`}>
                     {placeName}
                 </div>
 
-                {/* Espace pour la voiture (image de fond) */}
+                {/* Espace pour l'image de fond */}
                 <div className="flex-1"></div>
 
-                {/* Détails - EN BAS */}
+                {/* Détails en bas */}
                 <div className="flex flex-col items-center">
-                    {/* Point + Statut */}
                     <div className={`text-sm mt-1 flex items-center gap-2 font-bold ${getTextColor()}`}>
                         {getStatusIcon()}
                         <span className="text-sm font-bold">{getStatusText()}</span>
                     </div>
 
-                    {/* Temps */}
                     {isOccupied && vehicule && (
                         <div className={`text-xs mt-1 space-y-0.5 font-bold ${getTextColor()}`}>
-                            <div className="font-bold">
-                                {vehicule.tempsEcoule}h
-                            </div>
+                            <div className="font-bold">{vehicule.tempsEcoule}h</div>
                             {!depasse ? (
                                 <div className={`font-bold ${getTextColor()}`}>
                                     {vehicule.tempsRestant}h restant
                                 </div>
                             ) : (
                                 <div className="text-red-500 font-bold animate-pulse">
-                                    ⚠️ DÉPASSÉ
+                                    DÉPASSÉ
                                 </div>
                             )}
                         </div>

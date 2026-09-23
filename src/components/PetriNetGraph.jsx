@@ -3,107 +3,49 @@ import React from 'react';
 function PetriNetGraph({ state }) {
     // Récupération des valeurs depuis l'état du parking
     const placesData = {
-        P1: {
-            label: 'P1',
-            desc: 'Places Civiles Libres',
-            value: state.civilLibre || 0,
-            total: state.civilTotal || 0
-        },
-        P2: {
-            label: 'P2',
-            desc: 'Places VIP Libres',
-            value: state.vipLibre || 0,
-            total: state.vipTotal || 0
-        },
-        P3: {
-            label: 'P3',
-            desc: 'Places Civiles Occupées',
-            value: state.civilOccupe || 0,
-            total: state.civilTotal || 0
-        },
-        P4: {
-            label: 'P4',
-            desc: 'Places VIP Occupées',
-            value: state.vipOccupe || 0,
-            total: state.vipTotal || 0
-        },
-        P5: {
-            label: 'P5',
-            desc: "File d'attente CIVIL",
-            value: state.fileAttenteCivil?.length || 0,
-            total: 0
-        },
-        P6: {
-            label: 'P6',
-            desc: "File d'attente VIP",
-            value: state.fileAttenteVip?.length || 0,
-            total: 0
-        },
+        P1: { label: 'P1', value: state.civilLibre || 0, total: state.civilTotal || 0 },
+        P2: { label: 'P2', value: state.vipLibre || 0, total: state.vipTotal || 0 },
+        P3: { label: 'P3', value: state.civilOccupe || 0, total: state.civilTotal || 0 },
+        P4: { label: 'P4', value: state.vipOccupe || 0, total: state.vipTotal || 0 },
+        P5: { label: 'P5', value: state.fileAttenteCivil?.length || 0, total: 0 },
+        P6: { label: 'P6', value: state.fileAttenteVip?.length || 0, total: 0 },
     };
 
-    // Positions des éléments - Séparés correctement
+    // Positions des éléments - Alignement propre sans croisement
     const nodes = {
-        // Places
-        P1: { x: 100, y: 70 },
-        P2: { x: 100, y: 180 },
-        P3: { x: 340, y: 70 },
-        P4: { x: 340, y: 180 },
-        P5: { x: 170, y: 290 },    // P5 décalé à gauche
-        P6: { x: 290, y: 290 },    // P6 décalé à droite
-        // Transitions
-        T1: { x: 220, y: 70 },
-        T2: { x: 220, y: 180 },
-        T3: { x: 440, y: 70 },
-        T4: { x: 440, y: 180 },
-        T5: { x: 220, y: 290 },    // T5 entre P5 et T6 (en dessous)
-        T6: { x: 360, y: 290 },    // T6 à droite de T5
+        // Places - Ligne 1 (Civils)
+        P5: { x: 70, y: 100 },
+        P1: { x: 300, y: 100 },
+        P3: { x: 530, y: 100 },
+        // Places - Ligne 2 (VIP)
+        P6: { x: 70, y: 270 },
+        P2: { x: 300, y: 270 },
+        P4: { x: 530, y: 270 },
+        // Transitions - Ligne 1
+        T5: { x: 185, y: 100 },
+        T1: { x: 415, y: 100 },
+        T3: { x: 645, y: 100 },
+        // Transitions - Ligne 2
+        T6: { x: 185, y: 270 },
+        T2: { x: 415, y: 270 },
+        T4: { x: 645, y: 270 },
     };
 
-    // Arcs du réseau - Mise à jour des connexions
-    const arcs = [
-        { from: 'P1', to: 'T1' },
-        { from: 'P2', to: 'T2' },
-        { from: 'T1', to: 'P3' },
-        { from: 'T2', to: 'P4' },
-        { from: 'P3', to: 'T3' },
-        { from: 'P4', to: 'T4' },
-        { from: 'T3', to: 'P1' },
-        { from: 'T4', to: 'P2' },
-        // P5 -> T5 (P5 à gauche de T5)
+    // Arcs horizontaux (lignes droites) - AUCUN CROISEMENT
+    const straightArcs = [
+        // Ligne 1 (Civil)
         { from: 'P5', to: 'T5' },
-        // T5 -> P1
         { from: 'T5', to: 'P1' },
-        // P6 -> T6 (P6 à droite de T6)
+        { from: 'P1', to: 'T1' },
+        { from: 'T1', to: 'P3' },
+        { from: 'P3', to: 'T3' },
+        // Ligne 2 (VIP)
         { from: 'P6', to: 'T6' },
-        // T6 -> P2
         { from: 'T6', to: 'P2' },
+        { from: 'P2', to: 'T2' },
+        { from: 'T2', to: 'P4' },
+        { from: 'P4', to: 'T4' },
     ];
-
-    const getNode = (id) => nodes[id];
-
-    // Générer les positions des jetons
-    const getTokenPositions = (cx, cy, count) => {
-        const positions = [];
-        const total = Math.min(count, 6);
-        if (total === 0) return positions;
-
-        const radius = 26;
-        if (total === 1) {
-            positions.push({ x: cx + radius * 0.8, y: cy - radius * 0.6 });
-        } else if (total === 2) {
-            positions.push({ x: cx + radius * 0.7, y: cy - radius * 0.5 });
-            positions.push({ x: cx + radius * 0.9, y: cy + radius * 0.3 });
-        } else {
-            for (let i = 0; i < Math.min(total, 6); i++) {
-                const angle = -Math.PI / 2 + (i / Math.min(total, 6)) * Math.PI * 1.5;
-                positions.push({
-                    x: cx + radius * 0.8 * Math.cos(angle),
-                    y: cy + radius * 0.8 * Math.sin(angle) - 5,
-                });
-            }
-        }
-        return positions;
-    };
 
     // Vérifier si une transition est franchissable
     const isTransitionFirable = (id) => {
@@ -116,157 +58,149 @@ function PetriNetGraph({ state }) {
         return false;
     };
 
-    // Noms des transitions
-    const transitionNames = {
-        T1: 'Entrée Civil',
-        T2: 'Entrée VIP',
-        T3: 'Sortie Civil',
-        T4: 'Sortie VIP',
-        T5: 'Sortie file CIVIL',
-        T6: 'Sortie file VIP'
-    };
+    // Rayon des places
+    const R = 45;
+    // Demi-largeur des transitions
+    const TH = 28;
+    const TV = 18;
 
     return (
         <div className="bg-white rounded-xl shadow-lg p-3 border border-gray-200 h-full">
             <div className="flex justify-between items-center mb-1">
-                <h2 className="text-lg font-bold text-black flex items-center gap-2">
-                    <span className="text-xl"></span> Réseau de Pétri
-                </h2>
-                <div className="text-xs text-gray-400">
-                    ⏱️ Civil: 8h • VIP: 10h
-                </div>
+                <h2 className="text-xl font-bold text-black">Réseau de Pétri</h2>
+                <div className="text-sm text-gray-500 font-semibold">Civil: 8h • VIP: 10h</div>
             </div>
 
             <div className="overflow-auto">
                 <svg
                     width="100%"
-                    height="400"
-                    viewBox="0 0 580 380"
+                    height="520"
+                    viewBox="0 0 760 520"
                     className="border border-gray-200 rounded-lg bg-white"
                 >
                     {/* Définition des flèches */}
                     <defs>
-                        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                            <polygon points="0 0, 8 3, 0 6" fill="#333" />
+                        <marker id="arrowhead" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto">
+                            <polygon points="0 0, 12 5, 0 10" fill="#222" />
                         </marker>
                     </defs>
 
-                    {/* Arcs */}
-                    {arcs.map((arc, index) => {
-                        const from = getNode(arc.from);
-                        const to = getNode(arc.to);
+                    {/* ===== ARCS COURBES (retour) ===== */}
+
+                    {/* T3 → P1 : passe AU-DESSUS de tout */}
+                    <path
+                        d={`M ${nodes.T3.x} ${nodes.T3.y - TV} C ${nodes.T3.x} 15, ${nodes.P1.x} 15, ${nodes.P1.x} ${nodes.P1.y - R}`}
+                        fill="none"
+                        stroke="#222"
+                        strokeWidth="2"
+                        markerEnd="url(#arrowhead)"
+                    />
+
+                    {/* T4 → P2 : passe EN DESSOUS de tout */}
+                    <path
+                        d={`M ${nodes.T4.x} ${nodes.T4.y + TV} C ${nodes.T4.x} 410, ${nodes.P2.x} 410, ${nodes.P2.x} ${nodes.P2.y + R}`}
+                        fill="none"
+                        stroke="#222"
+                        strokeWidth="2"
+                        markerEnd="url(#arrowhead)"
+                    />
+
+                    {/* ===== ARCS HORIZONTAUX (droits) ===== */}
+                    {straightArcs.map((arc, index) => {
+                        const from = nodes[arc.from];
+                        const to = nodes[arc.to];
                         if (!from || !to) return null;
 
-                        const dx = to.x - from.x;
-                        const dy = to.y - from.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        const offset = 28;
-                        const startX = from.x + (dx / dist) * offset;
-                        const startY = from.y + (dy / dist) * offset;
-                        const endX = to.x - (dx / dist) * offset;
-                        const endY = to.y - (dy / dist) * offset;
+                        const isFromPlace = arc.from.startsWith('P');
+                        const isToPlace = arc.to.startsWith('P');
+
+                        const startX = from.x + (isFromPlace ? R : TH);
+                        const endX = to.x - (isToPlace ? R : TH);
+                        const y = from.y;
 
                         return (
                             <line
                                 key={index}
                                 x1={startX}
-                                y1={startY}
+                                y1={y}
                                 x2={endX}
-                                y2={endY}
-                                stroke="#333"
-                                strokeWidth="1.2"
+                                y2={y}
+                                stroke="#222"
+                                strokeWidth="2"
                                 markerEnd="url(#arrowhead)"
                             />
                         );
                     })}
 
-                    {/* Places (cercles) */}
+                    {/* ===== PLACES (cercles) ===== */}
                     {['P1', 'P2', 'P3', 'P4', 'P5', 'P6'].map((id) => {
                         const p = nodes[id];
                         const data = placesData[id];
                         const hasTokens = data.value > 0;
                         const isP5 = id === 'P5';
                         const isP6 = id === 'P6';
-                        const tokenPositions = getTokenPositions(p.x, p.y, data.value);
 
                         let fillColor = 'white';
-                        if (isP5) fillColor = '#E3F2FD';   // Bleu clair pour P5
-                        if (isP6) fillColor = '#FFF3E0';   // Orange clair pour P6
+                        if (isP5) fillColor = '#E3F2FD';
+                        if (isP6) fillColor = '#FFF3E0';
+
+                        // Jetons en cercle autour de la place
+                        const tokens = [];
+                        const total = Math.min(data.value, 6);
+                        if (total > 0) {
+                            for (let i = 0; i < total; i++) {
+                                const angle = -Math.PI / 2 + (i / total) * Math.PI * 2;
+                                tokens.push({
+                                    cx: p.x + (R * 0.55) * Math.cos(angle),
+                                    cy: p.y + (R * 0.55) * Math.sin(angle)
+                                });
+                            }
+                        }
 
                         return (
                             <g key={id}>
                                 <circle
                                     cx={p.x}
                                     cy={p.y}
-                                    r="28"
+                                    r={R}
                                     fill={fillColor}
-                                    stroke={hasTokens ? 'black' : '#999'}
-                                    strokeWidth={hasTokens ? "2.5" : "1.5"}
-                                    className="transition-all duration-300"
+                                    stroke={hasTokens ? 'black' : '#888'}
+                                    strokeWidth={hasTokens ? "3.5" : "2"}
                                 />
-
+                                {/* Nom de la place - TRÈS GRAND */}
                                 <text
                                     x={p.x}
-                                    y={p.y - 3}
+                                    y={p.y + 8}
                                     fill="black"
-                                    fontSize="12"
+                                    fontSize="28"
                                     fontWeight="bold"
                                     textAnchor="middle"
                                 >
                                     {id}
                                 </text>
-
-                                <text
-                                    x={p.x}
-                                    y={p.y + 16}
-                                    fill="#666"
-                                    fontSize="6.5"
-                                    textAnchor="middle"
-                                >
-                                    {data.desc}
-                                </text>
-
                                 {/* Jetons */}
-                                {tokenPositions.map((pos, i) => (
-                                    <circle
-                                        key={i}
-                                        cx={pos.x}
-                                        cy={pos.y}
-                                        r="4.5"
-                                        fill="black"
-                                        stroke="black"
-                                        strokeWidth="0.5"
-                                        className="transition-all duration-500"
-                                    />
+                                {tokens.map((t, i) => (
+                                    <circle key={i} cx={t.cx} cy={t.cy} r="6.5" fill="black" />
                                 ))}
-
+                                {/* Valeur - TRÈS GRAND */}
                                 <text
                                     x={p.x}
-                                    y={p.y + 42}
+                                    y={p.y + R + 30}
                                     fill="black"
-                                    fontSize="13"
+                                    fontSize="26"
                                     fontWeight="bold"
                                     textAnchor="middle"
                                 >
                                     {data.value}
+                                    {(id === 'P1' || id === 'P2') && (
+                                        <tspan fill="#888" fontSize="16">/{data.total}</tspan>
+                                    )}
                                 </text>
-
-                                {(id === 'P1' || id === 'P2') && (
-                                    <text
-                                        x={p.x + 28}
-                                        y={p.y + 42}
-                                        fill="#999"
-                                        fontSize="7"
-                                        textAnchor="middle"
-                                    >
-                                        /{data.total}
-                                    </text>
-                                )}
                             </g>
                         );
                     })}
 
-                    {/* Transitions (petits rectangles) */}
+                    {/* ===== TRANSITIONS (rectangles) ===== */}
                     {['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map((id) => {
                         const t = nodes[id];
                         const firable = isTransitionFirable(id);
@@ -274,68 +208,55 @@ function PetriNetGraph({ state }) {
                         return (
                             <g key={id}>
                                 <rect
-                                    x={t.x - 16}
-                                    y={t.y - 10}
-                                    width="32"
-                                    height="20"
-                                    fill={firable ? '#E8F5E9' : 'white'}
+                                    x={t.x - TH}
+                                    y={t.y - TV}
+                                    width={TH * 2}
+                                    height={TV * 2}
+                                    fill={firable ? '#C8E6C9' : 'white'}
                                     stroke="black"
-                                    strokeWidth="1.8"
-                                    className="transition-all duration-300"
+                                    strokeWidth="2.5"
                                 />
+                                {/* Nom transition - TRÈS GRAND */}
                                 <text
                                     x={t.x}
-                                    y={t.y + 3}
+                                    y={t.y + 8}
                                     fill="black"
-                                    fontSize="9"
+                                    fontSize="22"
                                     fontWeight="bold"
                                     textAnchor="middle"
                                 >
                                     {id}
                                 </text>
-                                <text
-                                    x={t.x}
-                                    y={t.y + 20}
-                                    fill="#666"
-                                    fontSize="6"
-                                    textAnchor="middle"
-                                >
-                                    {transitionNames[id]}
-                                </text>
                             </g>
                         );
                     })}
 
-                    {/* Légende */}
-                    <g transform="translate(10, 360)">
-                        <circle cx="6" cy="6" r="5" fill="white" stroke="black" strokeWidth="1.5" />
-                        <text x="16" y="9" fill="black" fontSize="7">Place</text>
+                    {/* ===== LÉGENDE ===== */}
+                    <g transform="translate(20, 470)">
+                        <circle cx="10" cy="10" r="9" fill="white" stroke="black" strokeWidth="2" />
+                        <text x="28" y="15" fill="black" fontSize="14" fontWeight="bold">Place</text>
 
-                        <rect x="65" y="1" width="10" height="6" fill="white" stroke="black" strokeWidth="1.5" />
-                        <text x="80" y="9" fill="black" fontSize="7">Transition</text>
+                        <rect x="115" y="1" width="18" height="18" fill="white" stroke="black" strokeWidth="2" />
+                        <text x="142" y="15" fill="black" fontSize="14" fontWeight="bold">Transition</text>
 
-                        <circle cx="130" cy="6" r="3" fill="black" />
-                        <text x="138" y="9" fill="black" fontSize="7">Jeton</text>
+                        <circle cx="265" cy="10" r="6" fill="black" />
+                        <text x="280" y="15" fill="black" fontSize="14" fontWeight="bold">Jeton</text>
 
-                        <text x="195" y="9" fill="#666" fontSize="7">
-                            ● {state.totalOccupe || 0} voitures
+                        <text x="365" y="15" fill="#333" fontSize="14" fontWeight="bold">
+                            {state.totalOccupe || 0} voitures
                         </text>
 
-                        <rect x="270" y="1" width="10" height="6" fill="#E3F2FD" stroke="black" strokeWidth="0.5" />
-                        <text x="285" y="9" fill="#666" fontSize="7">P5 Civil</text>
-
-                        <rect x="340" y="1" width="10" height="6" fill="#FFF3E0" stroke="black" strokeWidth="0.5" />
-                        <text x="355" y="9" fill="#666" fontSize="7">P6 VIP</text>
+                        <rect x="510" y="1" width="18" height="18" fill="#C8E6C9" stroke="black" strokeWidth="1.5" />
+                        <text x="537" y="15" fill="#333" fontSize="14" fontWeight="bold">Franchissable</text>
                     </g>
                 </svg>
             </div>
 
             {/* Liste des noms des Places et Transitions */}
             <div className="mt-3 pt-3 border-t border-gray-200">
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                    {/* Places */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                        <h4 className="font-bold text-gray-700 mb-1 text-sm">Places</h4>
+                        <h4 className="font-bold text-gray-700 mb-1">Places</h4>
                         <div className="space-y-0.5">
                             <div><span className="font-bold">P1</span> - Places Civiles Libres</div>
                             <div><span className="font-bold">P2</span> - Places VIP Libres</div>
@@ -345,17 +266,15 @@ function PetriNetGraph({ state }) {
                             <div><span className="font-bold">P6</span> - File d'attente VIP</div>
                         </div>
                     </div>
-
-                    {/* Transitions */}
                     <div>
-                        <h4 className="font-bold text-gray-700 mb-1 text-sm">Transitions</h4>
+                        <h4 className="font-bold text-gray-700 mb-1">Transitions</h4>
                         <div className="space-y-0.5">
                             <div><span className="font-bold">T1</span> - Entrée Civil</div>
                             <div><span className="font-bold">T2</span> - Entrée VIP</div>
                             <div><span className="font-bold">T3</span> - Sortie Civil</div>
                             <div><span className="font-bold">T4</span> - Sortie VIP</div>
-                            <div><span className="font-bold">T5</span> - Sortie file CIVIL</div>
-                            <div><span className="font-bold">T6</span> - Sortie file VIP</div>
+                            <div><span className="font-bold">T5</span> - File CIVIL → P1</div>
+                            <div><span className="font-bold">T6</span> - File VIP → P2</div>
                         </div>
                     </div>
                 </div>
