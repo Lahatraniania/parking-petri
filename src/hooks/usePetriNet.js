@@ -17,61 +17,32 @@ export function usePetriNet() {
         setHistorique([...petriNet.historique]);
     };
 
-    // Mettre à jour automatiquement toutes les 5 secondes
     useEffect(() => {
-        updateInterval.current = setInterval(() => {
-            updateState();
-        }, 5000);
-
+        updateInterval.current = setInterval(updateState, 5000);
         return () => {
-            if (updateInterval.current) {
-                clearInterval(updateInterval.current);
-            }
+            if (updateInterval.current) clearInterval(updateInterval.current);
             petriNet.arreterVerification();
         };
     }, [petriNet]);
 
     const actions = {
-        entrer: (type) => {
-            if (type === 'civil') {
-                petriNet.entrerCivil();
-            } else {
-                petriNet.entrerVip();
-            }
-            updateState();
-        },
-
-        sortir: (type, placeId = null) => {
-            if (type === 'civil') {
-                petriNet.sortirCivil(placeId);
-            } else {
-                petriNet.sortirVip(placeId);
-            }
-            updateState();
-        },
-
-        modifierPlaces: (type, nouveauTotal) => {
-            const success = petriNet.modifierPlaces(type, nouveauTotal);
-            if (success) updateState();
-            return success;
-        },
-
+        // T0 : Arrivée d'une voiture
+        arriver: () => { petriNet.arriverVoiture(); updateState(); },
+        // T1 : Choix Civil
+        choisirCivil: () => { petriNet.choisirCivil(); updateState(); },
+        // T2 : Choix VIP
+        choisirVip: () => { petriNet.choisirVip(); updateState(); },
+        // T3 : Sortie Civil
+        sortirCivil: (placeId = null) => { petriNet.sortirCivil(placeId); updateState(); },
+        // T4 : Sortie VIP
+        sortirVip: (placeId = null) => { petriNet.sortirVip(placeId); updateState(); },
+        modifierPlaces: (type, n) => { const ok = petriNet.modifierPlaces(type, n); if (ok) updateState(); return ok; },
         reinitialiser: () => {
-            const totalCivil = petriNet.civilTotal;
-            const totalVip = petriNet.vipTotal;
-            const newNet = new PetriNet(totalCivil, totalVip);
+            const tc = petriNet.civilTotal, tv = petriNet.vipTotal;
+            const newNet = new PetriNet(tc, tv);
             newNet.demarrerVerification();
             setPetriNet(newNet);
             updateState();
-        },
-
-        verifierDepassements: () => {
-            const depassements = petriNet.verifierDepassementDuree();
-            depassements.forEach(d => {
-                petriNet.sortieForcee(d.type, d.placeId);
-            });
-            updateState();
-            return depassements;
         }
     };
 
